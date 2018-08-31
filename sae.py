@@ -75,7 +75,7 @@ criterion = nn.MSELoss()
 optimizer = optim.RMSprop(sae.parameters(), lr = 0.01, weight_decay = 0.5)
 
 # Training the SAE
-nb_epoch = 5
+nb_epoch = 200
 for epoch in range(1, nb_epoch + 1):
     train_loss = 0
     # Count the number of users who rated at least one movie
@@ -167,7 +167,8 @@ def addUser():
     new_user = [0] * nb_movies
     users_array.append(new_user)
     users = torch.FloatTensor(users_array)
-
+    # Save user_id
+    
 def deleteUser(target_user_id):
     global users
     users_array.remove(target_user_id)
@@ -184,3 +185,42 @@ def addMovie(target_user_id, movie_name, rating):
             return target_movie_id
     print("Movie not found")
     return target_movie_id
+
+# Type in terminal: export FLASK_APP=sae.py
+#                   flask run --host=0.0.0.0
+from flask import Flask
+from flask import request
+from flask import jsonify
+from flask_cors import CORS
+
+app = Flask(__name__)
+
+CORS(app)
+
+# Get all movie rating predictions for a user
+@app.route('/predict', methods=['GET', 'POST'])
+def predict():
+    if request.method == 'POST':
+        user_id = request.values.get('user_id')
+    else:
+        user_id = request.args.get('user_id')
+
+    print(user_id)
+    p_rating_list = getAllRecs(users[user_id])
+    json_list = pd.Series(p_rating_list).to_json(orient='values')
+    response = {
+        'predicted_ratings': json_list
+    }
+    return jsonify(response)
+
+# Get a list of all movie names 
+@app.route('/get_movie_names', methods=['GET'])
+def get_movie_names():
+    movie_names = getMovieNames()
+    response = {
+        'movie_names': movie_names
+    }
+    return jsonify(response)
+
+def running():
+    return 'Flask is running!'
